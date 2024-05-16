@@ -20,11 +20,10 @@ import java.util.Map;
 public class SpeedBoostLogic {
 
     public static void doSpeedBoost(LocalPlayer pl) {
-
         int jumpBoostLevel = 0;
         MobEffectInstance jumpBoostEffect = pl.getEffect(MobEffect.byId(8));
         if (jumpBoostEffect != null) jumpBoostLevel = jumpBoostEffect.getAmplifier() + 1;
-        pl.flyingSpeed = (float) (pl.getSpeed() * (pl.isSprinting() ? 1 : 1.3) / 5) * (jumpBoostLevel * 0.5f + 1);
+        pl.setSpeed((float) (pl.getSpeed() * (pl.isSprinting() ? 1 : 1.3) / 5) * (jumpBoostLevel * 0.5f + 1));
 
         Vec3 pos = pl.position();
         Vec3 look = pl.getLookAngle();
@@ -46,7 +45,7 @@ public class SpeedBoostLogic {
                 }
 
                 if (boost.length() > 0.5)
-                    pl.level.addParticle(ParticleTypes.FIREWORK, pos.x, pos.y, pos.z, 0, 0, 0);
+                    pl.getCommandSenderWorld().addParticle(ParticleTypes.FIREWORK, pos.x, pos.y, pos.z, 0, 0, 0);
 
             }
 
@@ -67,8 +66,6 @@ public class SpeedBoostLogic {
         ItemStack stack = pl.getItemBySlot(slot);
         if (!stack.isEmpty()) {
             Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(stack);
-            if (enchantments.containsKey(WallJump.SPEEDBOOST_ENCHANT))
-                return enchantments.get(WallJump.SPEEDBOOST_ENCHANT);
         }
 
         return 0;

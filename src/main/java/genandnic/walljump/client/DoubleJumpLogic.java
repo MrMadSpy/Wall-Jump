@@ -24,12 +24,13 @@ public class DoubleJumpLogic {
 
     public static void doDoubleJump(LocalPlayer pl) {
 
+
         Vec3 pos = pl.position();
         Vec3 motion = pl.getDeltaMovement();
 
         AABB box = new AABB(pos.x, pos.y + (pl.getEyeHeight() * .8), pos.z, pos.x, pos.y + pl.getBbHeight(), pos.z);
 
-        if (pl.isOnGround() || pl.level.containsAnyLiquid(box) || WallJumpLogic.ticksWallClinged > 0 || pl.isPassenger() || pl.getAbilities().mayfly) {
+        if (pl.isOnGround() || pl.getCommandSenderWorld().containsAnyLiquid(box) || WallJumpLogic.ticksWallClinged > 0 || pl.isPassenger() || pl.getAbilities().mayfly) {
 
             jumpCount = getMultiJumps(pl);
 
@@ -63,8 +64,6 @@ public class DoubleJumpLogic {
         ItemStack stack = pl.getItemBySlot(EquipmentSlot.FEET);
         if (!stack.isEmpty()) {
             Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(stack);
-            if (enchantments.containsKey(WallJump.DOUBLEJUMP_ENCHANT))
-                jumpCount += enchantments.get(WallJump.DOUBLEJUMP_ENCHANT);
         }
 
         return jumpCount;

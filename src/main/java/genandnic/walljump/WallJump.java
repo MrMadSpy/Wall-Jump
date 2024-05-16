@@ -1,14 +1,8 @@
 package genandnic.walljump;
 
-import genandnic.walljump.enchantment.DoubleJumpEnchant;
-import genandnic.walljump.enchantment.SpeedBoostEnchant;
-import genandnic.walljump.enchantment.WallJumpEnchant;
 import genandnic.walljump.proxy.ClientProxy;
 import genandnic.walljump.proxy.CommonProxy;
-import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.RegistryEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
@@ -19,13 +13,11 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
 @Mod(WallJump.MOD_ID)
 @Mod.EventBusSubscriber(modid = WallJump.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
-public class WallJump
-{
+public class WallJump {
     public static final String MOD_ID = "walljump";
     public static final CommonProxy PROXY = DistExecutor.safeRunForDist(() -> ClientProxy::new, () -> CommonProxy::new);
 
     public WallJump() {
-
         MinecraftForge.EVENT_BUS.register(this);
 
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::onCommonSetup);
@@ -39,16 +31,5 @@ public class WallJump
 
     private void onClientSetup(FMLClientSetupEvent event) {
         PROXY.setupClient();
-    }
-
-    public static Enchantment WALLJUMP_ENCHANT = new WallJumpEnchant();
-    public static Enchantment DOUBLEJUMP_ENCHANT = new DoubleJumpEnchant();
-    public static Enchantment SPEEDBOOST_ENCHANT = new SpeedBoostEnchant();
-
-    @SubscribeEvent
-    public static void registerEnchantments(RegistryEvent.Register<Enchantment> event) {
-        event.getRegistry().register(WALLJUMP_ENCHANT);
-        event.getRegistry().register(DOUBLEJUMP_ENCHANT);
-        event.getRegistry().register(SPEEDBOOST_ENCHANT);
     }
 }

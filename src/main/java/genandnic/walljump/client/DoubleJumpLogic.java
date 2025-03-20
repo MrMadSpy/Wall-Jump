@@ -59,12 +59,7 @@ public class DoubleJumpLogic {
     private static int getMultiJumps(LocalPlayer pl) {
 
         int jumpCount = 0;
-        if (Config.COMMON.useDoubleJump.get()) jumpCount += 1;
-
-        ItemStack stack = pl.getItemBySlot(EquipmentSlot.FEET);
-        if (!stack.isEmpty()) {
-            Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(stack);
-        }
+        jumpCount += 1;
 
         return jumpCount;
     }

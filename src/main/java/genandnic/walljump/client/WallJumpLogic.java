@@ -21,7 +21,9 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraft.network.chat.Component;
 
+import java.awt.*;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -32,19 +34,45 @@ public class WallJumpLogic {
     private static int ticksKeyDown;
     private static double clingX, clingZ;
     private static double lastJumpY = Double.MAX_VALUE;
+    private static long nextJumpCooldown = 0;
+
+    // Add these variables for jump count and cooldown tracking
+    private static int jumpCount = 0;
+    private static long lastJumpTime = 0;
+    private static final int MAX_JUMPS = 5;
+    private static final long COOLDOWN_DURATION = 15 * 1000; // 30 seconds cooldown in milliseconds
 
     public static void doWallJump(LocalPlayer pl) {
-
         if (!WallJumpLogic.canWallJump(pl))
             return;
 
-        if (pl.isOnGround() || pl.getAbilities().flying || pl.isInWater()) {
+        long currentTime = System.currentTimeMillis();
 
+        // Check if the player needs to wait for the cooldown
+        if (jumpCount >= MAX_JUMPS) {
+            long cooldownRemaining = COOLDOWN_DURATION - (currentTime - lastJumpTime);
+            if (cooldownRemaining > 0) {
+                pl.displayClientMessage(Component.nullToEmpty("Cooldown active! " + (cooldownRemaining / 1000) + " seconds left."), true);
+                return; // Player cannot jump due to cooldown
+            } else {
+                // Cooldown expired, reset jump count
+                jumpCount = 0;
+            }
+        }
+
+        if (pl.isOnGround() || pl.getAbilities().flying || pl.isInWater()) {
+            // Reset when on the ground or in water
             ticksWallClinged = 0;
             clingX = Double.NaN;
             clingZ = Double.NaN;
             lastJumpY = Double.MAX_VALUE;
             staleWalls.clear();
+
+            // Reset jump count if player lands
+            if (pl.isOnGround()) {
+                jumpCount = 0;
+                lastJumpTime = 0; // Reset cooldown timer if on ground
+            }
 
             return;
         }
@@ -53,9 +81,7 @@ public class WallJumpLogic {
         ticksKeyDown = ClientProxy.KEY_WALLJUMP.isDown() ? ticksKeyDown + 1 : 0;
 
         if (ticksWallClinged < 1) {
-
             if (ticksKeyDown > 0 && ticksKeyDown < 4 && !walls.isEmpty() && canWallCling(pl)) {
-
                 if (Config.COMMON.autoRotation.get())
                     pl.setYRot(getClingDirection().getOpposite().toYRot());
 
@@ -71,16 +97,24 @@ public class WallJumpLogic {
         }
 
         if (!ClientProxy.KEY_WALLJUMP.isDown() || pl.isOnGround() || pl.isInWater() || walls.isEmpty() || pl.getFoodData().getFoodLevel() < 1) {
-
             ticksWallClinged = 0;
 
             if ((pl.input.forwardImpulse != 0 || pl.input.leftImpulse != 0) && !pl.isOnGround() && !walls.isEmpty()) {
-
                 pl.fallDistance = 0.0F;
                 PacketHandler.INSTANCE.sendToServer(new MessageWallJump());
 
                 wallJump(pl, Config.COMMON.wallJumpHeight.get().floatValue());
                 staleWalls = new HashSet<>(walls);
+
+                // Increase jump count and set last jump time
+                jumpCount++;
+                lastJumpTime = currentTime;
+
+                // Check if jump limit is reached
+                if (jumpCount >= MAX_JUMPS) {
+
+                    pl.displayClientMessage(Component.nullToEmpty("Max jumps reached! Cooldown active."), true);
+                }
 
             }
 
@@ -111,22 +145,14 @@ public class WallJumpLogic {
     }
 
     private static boolean canWallJump(LocalPlayer pl) {
-
-        if (Config.COMMON.useWallJump.get()) return true;
-
-        return false;
+        return Config.COMMON.useWallJump.get();
     }
 
     private static boolean canWallCling(LocalPlayer pl) {
-
         if (pl.onClimbable() || pl.getDeltaMovement().y > 0.1 || pl.getFoodData().getFoodLevel() < 1)
             return false;
 
-        if (ClientProxy.collidesWithBlock(pl.getCommandSenderWorld(), pl.getBoundingBoxForCulling().move(0, -0.8, 0))) return false;
-
-        if (Config.COMMON.allowReClinging.get() || pl.position().y < lastJumpY - 1) return true;
-
-        return !staleWalls.containsAll(walls);
+        return true;
     }
 
     private static Set<Direction> walls = new HashSet<>();
@@ -135,10 +161,20 @@ public class WallJumpLogic {
     private static void updateWalls(LocalPlayer pl) {
 
         Vec3 pos = pl.position();
-        AABB box = new AABB(pos.x - 0.001, pos.y, pos.z - 0.001, pos.x + 0.001, pos.y + pl.getEyeHeight(), pos.z + 0.001);
+        AABB playerBox = pl.getBoundingBoxForCulling();
+        double playerWidth = playerBox.getXsize();
+        double playerHeight = playerBox.getYsize();
 
-        double dist = (pl.getBbWidth() / 2) + (ticksWallClinged > 0 ? 0.1 : 0.06);
-        AABB[] axes = {box.expandTowards(0, 0, dist), box.expandTowards(-dist, 0, 0), box.expandTowards(0, 0, -dist), box.expandTowards(dist, 0, 0)};
+        AABB box = new AABB(pos.x - playerWidth / 2, pos.y - (playerHeight * 0.5), pos.z - playerWidth / 2,
+                pos.x + playerWidth / 2, pos.y + playerHeight, pos.z + playerWidth / 2);
+
+        double dist = (playerWidth / 2) + (ticksWallClinged > 0 ? 0.1 : 0.06);
+        AABB[] axes = {
+                box.expandTowards(0, 0, dist),
+                box.expandTowards(-dist, 0, 0),
+                box.expandTowards(0, 0, -dist),
+                box.expandTowards(dist, 0, 0)
+        };
 
         int i = 0;
         Direction direction;
@@ -150,7 +186,6 @@ public class WallJumpLogic {
                 pl.horizontalCollision = true;
             }
         }
-
     }
 
     private static Direction getClingDirection() {

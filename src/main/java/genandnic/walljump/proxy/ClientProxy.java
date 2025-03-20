@@ -78,13 +78,15 @@ public class ClientProxy extends CommonProxy {
     }
 
     private static double getMaxUpStep(LocalPlayer player) {
-        try {
-            Field maxUpStepField = LocalPlayer.class.getSuperclass().getDeclaredField("maxUpStep");
-            maxUpStepField.setAccessible(true);
-            return (double) maxUpStepField.get(player);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return 0.6; // Default value if maxUpStep is not accessible
-        }
+        return 0.6; // Default value if maxUpStep is not accessible
+
+//        try {
+//            Field maxUpStepField = LocalPlayer.class.getSuperclass().getDeclaredField("maxUpStep");
+//            maxUpStepField.setAccessible(true);
+//            return (double) maxUpStepField.get(player);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return 0.6; // Default value if maxUpStep is not accessible
+//        }
     }
 }
